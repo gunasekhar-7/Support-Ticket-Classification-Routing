@@ -1,0 +1,104 @@
+Metadata-Version: 2.4
+Name: ticket-classifier
+Version: 0.1.0
+Summary: Support Ticket Classification & Routing System
+Requires-Python: >=3.11
+Description-Content-Type: text/markdown
+Requires-Dist: fastapi>=0.110.0
+Requires-Dist: uvicorn[standard]>=0.29.0
+Requires-Dist: pydantic>=2.7.0
+Requires-Dist: pydantic-settings>=2.3.0
+Requires-Dist: torch>=2.3.0
+Requires-Dist: transformers>=4.40.0
+Requires-Dist: accelerate>=0.30.0
+Requires-Dist: sentencepiece>=0.1.99
+Requires-Dist: scikit-learn>=1.4.0
+Requires-Dist: joblib>=1.4.0
+Requires-Dist: python-json-logger>=2.0.7
+Requires-Dist: structlog>=24.1.0
+Requires-Dist: redis>=5.0.0
+Requires-Dist: httpx>=0.27.0
+Requires-Dist: tenacity>=8.2.0
+Requires-Dist: prometheus-client>=0.19.0
+Requires-Dist: slowapi>=0.1.9
+Requires-Dist: python-multipart>=0.0.9
+Requires-Dist: sqlalchemy>=2.0.0
+Requires-Dist: asyncpg>=0.29.0
+Requires-Dist: alembic>=1.12.0
+Requires-Dist: aiosqlite>=0.19.0
+Provides-Extra: dev
+Requires-Dist: pytest>=8.1.0; extra == "dev"
+Requires-Dist: pytest-asyncio>=0.23.0; extra == "dev"
+Requires-Dist: pytest-cov>=4.1.0; extra == "dev"
+Requires-Dist: httpx>=0.27.0; extra == "dev"
+Requires-Dist: ruff>=0.4.0; extra == "dev"
+Requires-Dist: mypy>=1.9.0; extra == "dev"
+Requires-Dist: pre-commit>=3.7.0; extra == "dev"
+Provides-Extra: s3
+Requires-Dist: boto3>=1.34.0; extra == "s3"
+Provides-Extra: gcs
+Requires-Dist: google-cloud-storage>=2.16.0; extra == "gcs"
+Provides-Extra: model
+Requires-Dist: boto3>=1.34.0; extra == "model"
+Requires-Dist: google-cloud-storage>=2.16.0; extra == "model"
+
+# Support Ticket Classification & Routing
+
+A production-ready API for classifying and routing support tickets using ML.
+
+## Features
+
+- **Classification**: DistilBERT-based ticket categorization (technical, billing, account, security, etc.)
+- **Routing**: Intelligent team assignment with priority and SLA calculation
+- **Async Inference**: Batched async inference pipeline with configurable timeouts
+- **Observability**: Structured JSON logging, Prometheus metrics, health endpoints
+- **Security**: PII redaction, rate limiting, input validation
+- **Production Ready**: Lifespan management, graceful shutdown, structured errors
+
+## API Endpoints
+
+- `POST /api/v1/classify` - Classify a single ticket
+- `POST /api/v1/classify/batch` - Classify multiple tickets
+- `GET /api/v1/health` - Basic health check
+- `GET /api/v1/health/live` - Liveness probe
+- `GET /api/v1/health/ready` - Readiness probe with component checks
+- `GET /api/v1/metrics` - Prometheus metrics
+
+## Quick Start
+
+```bash
+# Install dependencies
+pip install -e ".[dev]"
+
+# Run development server
+uvicorn app.main:app --reload
+
+# Run with Docker
+docker-compose up
+```
+
+## Configuration
+
+Environment variables (or `.env` file):
+
+```bash
+ENVIRONMENT=development
+LOG_LEVEL=INFO
+LOG_FORMAT=console
+MODEL_PATH=models/distilbert
+REDIS_URL=redis://localhost:6379/0
+RATE_LIMIT_REQUESTS=100
+RATE_LIMIT_WINDOW=60
+```
+
+## Testing
+
+```bash
+pytest
+pytest --cov=app
+```
+
+## Monitoring
+
+- Prometheus: http://localhost:9090
+- Grafana: http://localhost:3000 (admin/admin)
