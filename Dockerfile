@@ -11,6 +11,9 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     gcc \
     && rm -rf /var/lib/apt/lists/*
 
+# Install PyTorch CPU first (avoids downloading massive CUDA dependencies)
+RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu torch
+
 COPY pyproject.toml ./
 RUN pip install --no-cache-dir -e ".[model]"
 
