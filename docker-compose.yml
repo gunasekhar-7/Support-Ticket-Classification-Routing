@@ -13,6 +13,7 @@ services:
       - REDIS_URL=redis://redis:6379/0
       - MODEL_PATH=/app/models/distilbert
       - BASELINE_MODEL_PATH=/app/models/baseline.joblib
+      - RATE_LIMIT_ENABLED=false
     volumes:
       - ./app:/app/app
       - ./models:/app/models

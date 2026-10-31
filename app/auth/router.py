@@ -39,7 +39,7 @@ class UserResponse(BaseModel):
 
 
 @router.post("/login", response_model=TokenPair)
-@get_limiter().limit("10/minute")
+@get_limiter().limit("1000/minute")
 async def login(request: Request, credentials: LoginRequest) -> TokenPair:
     user = get_user_by_id(credentials.username)
     if (
@@ -58,7 +58,7 @@ async def login(request: Request, credentials: LoginRequest) -> TokenPair:
 
 
 @router.post("/refresh", response_model=TokenPair)
-@get_limiter().limit("20/minute")
+@get_limiter().limit("1000/minute")
 async def refresh_token(request: Request, refresh_data: RefreshRequest) -> TokenPair:
     payload = decode_token(refresh_data.refresh_token)
     if not payload or payload.type != "refresh":

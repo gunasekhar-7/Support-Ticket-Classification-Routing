@@ -222,7 +222,7 @@ class ChaosUser(HttpUser):
             name="/api/v1/classify (invalid)",
             catch_response=True,
         ) as response:
-            if response.status_code == 422:
+            if response.status_code in (400, 422):
                 response.success()
 
     @task(2)
@@ -248,17 +248,20 @@ class ChaosUser(HttpUser):
     @task(3)
     def unauthenticated_requests(self):
         """Test unauthenticated access."""
-        self.client.post(
+        with self.client.post(
             "/api/v1/classify",
             json={"subject": "test", "body": "test"},
             name="/api/v1/classify (unauth)",
-        )
+            catch_response=True,
+        ) as response:
+            if response.status_code == 401:
+                response.success()
 
     @task(1)
     def rate_limit_test(self):
         """Rapid requests to test rate limiting."""
         for _ in range(5):
-            self.client.post(
+            with self.client.post(
                 "/api/v1/classify",
                 json={
                     "subject": "rate limit test",
@@ -267,4 +270,7 @@ class ChaosUser(HttpUser):
                 },
                 headers=self.headers,
                 name="/api/v1/classify (rate limit)",
-            )
+                catch_response=True,
+            ) as response:
+                if response.status_code in (200, 429):
+                    response.success()

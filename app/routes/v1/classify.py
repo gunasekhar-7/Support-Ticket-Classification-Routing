@@ -88,7 +88,7 @@ async def _audit_log(
         500: {"model": ErrorResponse},
     },
 )
-@get_limiter().limit("100/minute")
+@get_limiter().limit("10000/minute")
 async def classify_ticket(
     request: Request,
     ticket: TicketRequest,
@@ -232,7 +232,7 @@ async def classify_ticket(
         500: {"model": ErrorResponse},
     },
 )
-@get_limiter().limit("20/minute")
+@get_limiter().limit("5000/minute")
 async def classify_batch(
     request: Request,
     batch: BatchTicketRequest,

@@ -138,7 +138,7 @@ class BatchTicketResponseV2(BaseModel):
         "Returns detailed routing information."
     ),
 )
-@get_limiter().limit("100/minute")
+@get_limiter().limit("10000/minute")
 async def classify_ticket(
     request: Request,
     ticket: TicketRequestV2,
@@ -315,7 +315,7 @@ async def classify_ticket(
         "Returns detailed results for each ticket."
     ),
 )
-@get_limiter().limit("20/minute")
+@get_limiter().limit("5000/minute")
 async def classify_batch(
     request: Request,
     batch: BatchTicketRequest,

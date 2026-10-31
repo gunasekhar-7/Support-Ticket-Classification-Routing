@@ -49,6 +49,7 @@ class Settings(BaseSettings):
     # Database
     database_url: str = "sqlite+aiosqlite:///./test.db"
 
+    rate_limit_enabled: bool = True
     rate_limit_requests: int = 100
     rate_limit_window: int = 60
 

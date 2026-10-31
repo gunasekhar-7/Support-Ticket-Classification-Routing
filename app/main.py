@@ -69,7 +69,10 @@ async def lifespan(app: FastAPI) -> Any:
         redis_client = None
 
     # Configure limiter with Redis storage if available
-    limiter = configure_limiter(settings.redis_url if redis_client else None)
+    limiter = configure_limiter(
+        storage_uri=settings.redis_url if redis_client else None,
+        enabled=settings.rate_limit_enabled,
+    )
     app.state.limiter = limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 

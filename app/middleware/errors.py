@@ -3,6 +3,7 @@ from __future__ import annotations
 import traceback
 
 from fastapi import FastAPI, Request, status
+from fastapi.encoders import jsonable_encoder
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import ValidationError
@@ -67,7 +68,7 @@ def register_exception_handlers(app: FastAPI) -> None:
                     code="VALIDATION_ERROR",
                     message=first_error.get("msg", "Validation failed"),
                     field=".".join(str(x) for x in first_error.get("loc", [])),
-                    context={"errors": errors},
+                    context={"errors": jsonable_encoder(errors)},
                 ),
                 request_id=request_id,
             ).model_dump(),
@@ -93,7 +94,7 @@ def register_exception_handlers(app: FastAPI) -> None:
                 error=ErrorDetail(
                     code="VALIDATION_ERROR",
                     message="Invalid request data",
-                    context={"errors": exc.errors()},
+                    context={"errors": jsonable_encoder(exc.errors())},
                 ),
                 request_id=request_id,
             ).model_dump(),

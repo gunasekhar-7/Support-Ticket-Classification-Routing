@@ -10,8 +10,7 @@ def get_limiter() -> Limiter:
     return _limiter
 
 
-def configure_limiter(storage_uri: str | None = None) -> Limiter:
+def configure_limiter(storage_uri: str | None = None, enabled: bool = True) -> Limiter:
     global _limiter
-    if storage_uri:
-        _limiter = Limiter(key_func=get_remote_address, storage_uri=storage_uri)
+    _limiter = Limiter(key_func=get_remote_address, storage_uri=storage_uri, enabled=enabled)
     return _limiter
