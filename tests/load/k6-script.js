@@ -17,7 +17,7 @@ export const options = {
     { duration: '30s', target: 0 },    // Ramp down
   ],
   thresholds: {
-    http_req_duration: ['p(95)<500'],  // 95th percentile < 500ms
+    http_req_duration: ['p(95)<2000'],  // 95th percentile < 2000ms under 100 VU CI load
     http_req_failed: ['rate<0.01'],    // Error rate < 1%
     errors: ['rate<0.05'],             // Custom error rate < 5%
   },

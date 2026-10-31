@@ -7,8 +7,8 @@ services:
       - "8000:8000"
     environment:
       - ENVIRONMENT=development
-      - DEBUG=true
-      - LOG_LEVEL=INFO
+      - DEBUG=false
+      - LOG_LEVEL=WARNING
       - LOG_FORMAT=console
       - REDIS_URL=redis://redis:6379/0
       - MODEL_PATH=/app/models/distilbert
