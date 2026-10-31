@@ -69,7 +69,13 @@ class RoutingService:
         customer_id: str | None = None,
         metadata: dict[str, Any] | None = None,
     ) -> RoutingResult:
-        team = TEAM_ROUTING.get(classification.category.value, "general-support")
+        # Check dynamically loaded rules from Redis first, then fall back to defaults
+        configured_rule = self._routing_rules.get(classification.category.value)
+        team = (
+            configured_rule
+            if isinstance(configured_rule, str)
+            else TEAM_ROUTING.get(classification.category.value, "general-support")
+        )
         priority = classification.priority
         tags = list(classification.tags)
         escalation_level = PRIORITY_ESCALATION.get(priority, 0)
@@ -123,6 +129,9 @@ class RoutingService:
         pipe.incr(f"routing:priority:{priority}")
         if customer_id:
             pipe.incr(f"routing:customer:{customer_id}")
+            pipe.expire(
+                f"routing:customer:{customer_id}", 86400 * 30
+            )  # 30-day retention to prevent unbounded key leak
         await pipe.execute()
 
     async def get_routing_stats(self) -> dict[str, Any]:

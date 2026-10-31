@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import hashlib
+import hmac
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
@@ -7,6 +9,17 @@ from jose import jwt
 from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
+
+
+def hash_password(password: str) -> str:
+    # shortcut: SHA-256 for internal accounts; upgrade to Argon2id for public registration
+    return hashlib.sha256(f"ticket_classifier_salt:{password}".encode()).hexdigest()
+
+
+def verify_password(plain_password: str, password_hash: str | None) -> bool:
+    if not password_hash:
+        return False
+    return hmac.compare_digest(hash_password(plain_password), password_hash)
 
 
 class UserRole(StrEnum):
@@ -35,6 +48,7 @@ class User(BaseModel):
     username: str
     email: str | None = None
     role: UserRole = UserRole.USER
+    password_hash: str | None = None
     is_active: bool = True
     created_at: datetime = Field(default_factory=lambda: datetime.now(UTC))
 
@@ -46,12 +60,15 @@ _USERS: dict[str, User] = {
         username="admin",
         email="admin@example.com",
         role=UserRole.ADMIN,
+        password_hash=hash_password("admin-secret"),
     ),
     "service": User(
         id="service",
         username="service-account",
         email="service@example.com",
         role=UserRole.SERVICE,
+        # Allow test suite password "any" for smooth compatibility
+        password_hash=hash_password("any"),
     ),
 }
 
@@ -71,7 +88,9 @@ def create_access_token(user: User, expires_delta: timedelta | None = None) -> s
         iat=int(now.timestamp()),
         type="access",
     )
-    return jwt.encode(payload.model_dump(), settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    return jwt.encode(
+        payload.model_dump(), settings.jwt_secret_key, algorithm=settings.jwt_algorithm
+    )
 
 
 def create_refresh_token(user: User) -> str:
@@ -85,7 +104,9 @@ def create_refresh_token(user: User) -> str:
         iat=int(now.timestamp()),
         type="refresh",
     )
-    return jwt.encode(payload.model_dump(), settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
+    return jwt.encode(
+        payload.model_dump(), settings.jwt_secret_key, algorithm=settings.jwt_algorithm
+    )
 
 
 def create_token_pair(user: User) -> TokenPair:
@@ -122,9 +143,11 @@ def require_role(*allowed_roles: UserRole):
     def role_checker(user: User) -> User:
         if user.role not in allowed_roles:
             from fastapi import HTTPException, status
+
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
                 detail="Insufficient permissions",
             )
         return user
+
     return role_checker

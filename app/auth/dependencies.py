@@ -48,6 +48,7 @@ def require_roles(*roles: UserRole):
                 detail="Insufficient permissions",
             )
         return user
+
     return role_dependency
 
 

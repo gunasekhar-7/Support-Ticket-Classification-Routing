@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from contextlib import asynccontextmanager
 from typing import Any
 
@@ -12,6 +13,7 @@ from slowapi.errors import RateLimitExceeded
 from app.auth import auth_router
 from app.core.config import get_settings
 from app.core.logging import get_logger, setup_logging
+from app.core.rate_limiter import configure_limiter
 from app.db import close_db, init_db
 from app.middleware.errors import register_exception_handlers
 from app.middleware.request_id import RequestIDMiddleware
@@ -26,16 +28,6 @@ from app.services.inference import InferenceService
 from app.services.routing import RoutingService
 
 logger = get_logger(__name__)
-
-
-def create_limiter(redis_client: redis.Redis | None, settings) -> Any:
-    if redis_client:
-        from slowapi import Limiter
-        from slowapi.util import get_remote_address
-        return Limiter(key_func=get_remote_address, storage_uri=settings.redis_url)
-    from slowapi import Limiter
-    from slowapi.util import get_remote_address
-    return Limiter(key_func=get_remote_address)
 
 
 @asynccontextmanager
@@ -65,14 +57,19 @@ async def lifespan(app: FastAPI) -> Any:
             settings.redis_url,
             max_connections=settings.redis_max_connections,
             decode_responses=True,
+            socket_timeout=0.5,
+            socket_connect_timeout=0.5,
         )
-        await redis_client.ping()
+        await asyncio.wait_for(redis_client.ping(), timeout=0.5)
         logger.info("redis_connected", url=settings.redis_url)
     except Exception as e:
         logger.warning("redis_connection_failed", error=str(e))
+        if redis_client:
+            await redis_client.aclose()
+        redis_client = None
 
-    # Create limiter with Redis storage if available
-    _limiter = create_limiter(redis_client, settings)
+    # Configure limiter with Redis storage if available
+    _limiter = configure_limiter(settings.redis_url if redis_client else None)
     app.state.limiter = _limiter
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
@@ -133,7 +130,10 @@ def create_app() -> FastAPI:
         openapi_tags=[
             {"name": "health", "description": "Health check endpoints"},
             {"name": "classification", "description": "Ticket classification endpoints (v1)"},
-            {"name": "classification-v2", "description": "Ticket classification endpoints (v2) - enhanced response format"},
+            {
+                "name": "classification-v2",
+                "description": "Ticket classification endpoints (v2) - enhanced response format",
+            },
             {"name": "metrics", "description": "Prometheus metrics"},
             {"name": "authentication", "description": "Authentication endpoints"},
         ],

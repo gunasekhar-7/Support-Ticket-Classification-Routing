@@ -3,12 +3,15 @@ from __future__ import annotations
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 
-# Module-level limiter instance (initialized in main.py lifespan)
-limiter: Limiter | None = None
+_limiter: Limiter = Limiter(key_func=get_remote_address)
 
 
 def get_limiter() -> Limiter:
-    if limiter is None:
-        # Fallback for testing or early access
-        return Limiter(key_func=get_remote_address)
-    return limiter
+    return _limiter
+
+
+def configure_limiter(storage_uri: str | None = None) -> Limiter:
+    global _limiter
+    if storage_uri:
+        _limiter = Limiter(key_func=get_remote_address, storage_uri=storage_uri)
+    return _limiter

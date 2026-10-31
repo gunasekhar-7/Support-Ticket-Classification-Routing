@@ -1,2 +1,31 @@
+# Secrets and environments
+.env
+.env.*
+
+# Databases
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+
+# Python build and cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.egg-info/
+dist/
+build/
+
+# Testing and linting
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Machine learning model artifacts
 models/
 *.safetensors
+*.bin
+*.joblib

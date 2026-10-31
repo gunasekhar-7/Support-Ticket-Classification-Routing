@@ -56,6 +56,7 @@ class CircuitBreaker:
 
         self._state = CircuitState.CLOSED
         self._failure_count = 0
+        self._in_flight = 0
         self._last_failure_time: float | None = None
         self._lock = asyncio.Lock()
 
@@ -65,15 +66,24 @@ class CircuitBreaker:
 
     @property
     def state(self) -> CircuitState:
-        if self._state == CircuitState.OPEN:
-            if self._last_failure_time and (time.time() - self._last_failure_time) >= self.recovery_timeout:
-                return CircuitState.HALF_OPEN
+        if (
+            self._state == CircuitState.OPEN
+            and self._last_failure_time
+            and (time.time() - self._last_failure_time) >= self.recovery_timeout
+        ):
+            return CircuitState.HALF_OPEN
         return self._state
 
     async def call(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
         async with self._lock:
-            if self.state == CircuitState.OPEN:
+            current_state = self.state
+            if current_state == CircuitState.OPEN:
                 raise CircuitBreakerOpenError(f"Circuit breaker '{self.name}' is OPEN")
+            if current_state == CircuitState.HALF_OPEN and self._in_flight > 0:
+                raise CircuitBreakerOpenError(
+                    f"Circuit breaker '{self.name}' is HALF_OPEN testing canary"
+                )
+            self._in_flight += 1
 
         try:
             result = await func(*args, **kwargs)
@@ -82,6 +92,9 @@ class CircuitBreaker:
         except self.expected_exception:
             await self._on_failure()
             raise
+        finally:
+            async with self._lock:
+                self._in_flight = max(0, self._in_flight - 1)
 
     async def _on_success(self) -> None:
         async with self._lock:

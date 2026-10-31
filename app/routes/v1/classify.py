@@ -78,7 +78,13 @@ async def _audit_log(
 @router.post(
     "/classify",
     response_model=TicketResponse,
-    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 429: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
 )
 @get_limiter().limit("100/minute")
 async def classify_ticket(
@@ -119,7 +125,9 @@ async def classify_ticket(
 
         CLASSIFICATION_REQUESTS.labels(endpoint="classify", status="success").inc()
         CLASSIFICATION_LATENCY.labels(endpoint="classify").observe(processing_time / 1000)
-        CLASSIFICATION_CONFIDENCE.labels(category=classification.category.value).observe(classification.confidence)
+        CLASSIFICATION_CONFIDENCE.labels(category=classification.category.value).observe(
+            classification.confidence
+        )
 
         # Audit log the classification
         async with get_session() as session:
@@ -209,7 +217,13 @@ async def classify_ticket(
 @router.post(
     "/classify/batch",
     response_model=BatchTicketResponse,
-    responses={400: {"model": ErrorResponse}, 401: {"model": ErrorResponse}, 403: {"model": ErrorResponse}, 429: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    responses={
+        400: {"model": ErrorResponse},
+        401: {"model": ErrorResponse},
+        403: {"model": ErrorResponse},
+        429: {"model": ErrorResponse},
+        500: {"model": ErrorResponse},
+    },
 )
 @get_limiter().limit("20/minute")
 async def classify_batch(

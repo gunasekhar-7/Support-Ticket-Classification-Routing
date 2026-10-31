@@ -79,24 +79,31 @@ async def _audit_log(
 
 class TicketRequestV2(TicketRequest):
     """Extended ticket request with additional fields for v2."""
+
     language: str | None = Field(default=None, max_length=10, description="ISO 639-1 language code")
     source: str | None = Field(default=None, max_length=50, description="Ticket source channel")
-    urgency: str | None = Field(default=None, pattern="^(low|medium|high|critical)$", description="User-specified urgency")
+    urgency: str | None = Field(
+        default=None, pattern="^(low|medium|high|critical)$", description="User-specified urgency"
+    )
 
 
 class ClassificationDetail(BaseModel):
     """Detailed classification response for v2."""
+
     category: str
     confidence: float = Field(ge=0.0, le=1.0)
     subcategory: str | None = None
     priority: str
     suggested_team: str
     tags: list[str] = []
-    all_scores: dict[str, float] = Field(default_factory=dict, description="Confidence scores for all categories")
+    all_scores: dict[str, float] = Field(
+        default_factory=dict, description="Confidence scores for all categories"
+    )
 
 
 class TicketResponseV2(TicketResponse):
     """Extended ticket response for v2."""
+
     classification: ClassificationDetail
     routing: dict = Field(default_factory=dict, description="Routing details")
     request_id: str
@@ -105,6 +112,7 @@ class TicketResponseV2(TicketResponse):
 
 class BatchTicketResponseV2(BatchTicketResponse):
     """Extended batch response for v2."""
+
     results: list[TicketResponseV2]
 
 
@@ -119,7 +127,10 @@ class BatchTicketResponseV2(BatchTicketResponse):
         500: {"model": ErrorResponse, "description": "Internal server error"},
     },
     summary="Classify a single support ticket",
-    description="Classify a support ticket into category, priority, and suggested team. Returns detailed routing information.",
+    description=(
+        "Classify a support ticket into category, priority, and suggested team. "
+        "Returns detailed routing information."
+    ),
 )
 @get_limiter().limit("100/minute")
 async def classify_ticket(
@@ -150,7 +161,12 @@ async def classify_ticket(
         routing_result = await routing.route(
             classification=classification,
             customer_id=ticket.customer_id,
-            metadata={**(ticket.metadata or {}), "language": ticket.language, "source": ticket.source, "urgency": ticket.urgency},
+            metadata={
+                **(ticket.metadata or {}),
+                "language": ticket.language,
+                "source": ticket.source,
+                "urgency": ticket.urgency,
+            },
         )
 
         classification.suggested_team = routing_result.team
@@ -161,7 +177,9 @@ async def classify_ticket(
 
         CLASSIFICATION_V2_REQUESTS.labels(endpoint="classify", status="success").inc()
         CLASSIFICATION_V2_LATENCY.labels(endpoint="classify").observe(processing_time / 1000)
-        CLASSIFICATION_V2_CONFIDENCE.labels(category=classification.category.value).observe(classification.confidence)
+        CLASSIFICATION_V2_CONFIDENCE.labels(category=classification.category.value).observe(
+            classification.confidence
+        )
 
         # Build detailed classification
         detail = ClassificationDetail(
@@ -281,7 +299,10 @@ async def classify_ticket(
         500: {"model": ErrorResponse, "description": "Internal server error"},
     },
     summary="Classify multiple support tickets",
-    description="Batch classify up to 100 tickets in a single request. Returns detailed results for each ticket.",
+    description=(
+        "Batch classify up to 100 tickets in a single request. "
+        "Returns detailed results for each ticket."
+    ),
 )
 @get_limiter().limit("20/minute")
 async def classify_batch(
@@ -414,7 +435,9 @@ async def classify_batch(
         )
 
     except ValueError as e:
-        CLASSIFICATION_V2_REQUESTS.labels(endpoint="classify_batch", status="validation_error").inc()
+        CLASSIFICATION_V2_REQUESTS.labels(
+            endpoint="classify_batch", status="validation_error"
+        ).inc()
         logger.warning("batch_classification_validation_error", request_id=request_id, error=str(e))
         raise HTTPException(
             status_code=400,

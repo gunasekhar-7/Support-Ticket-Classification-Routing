@@ -27,20 +27,27 @@ def register_exception_handlers(app: FastAPI) -> None:
             request_id=request_id,
         )
 
-        return JSONResponse(
-            status_code=exc.status_code,
-            content=ErrorResponse(
+        if isinstance(exc.detail, dict):
+            content = exc.detail
+        else:
+            content = ErrorResponse(
                 error=ErrorDetail(
                     code="HTTP_ERROR",
                     message=str(exc.detail),
                 ),
                 request_id=request_id,
-            ).model_dump(),
+            ).model_dump()
+
+        return JSONResponse(
+            status_code=exc.status_code,
+            content=content,
             headers={"X-Request-ID": request_id} if request_id else {},
         )
 
     @app.exception_handler(RequestValidationError)
-    async def validation_exception_handler(request: Request, exc: RequestValidationError) -> JSONResponse:
+    async def validation_exception_handler(
+        request: Request, exc: RequestValidationError
+    ) -> JSONResponse:
         request_id = getattr(request.state, "request_id", None)
 
         errors = exc.errors()
@@ -68,7 +75,9 @@ def register_exception_handlers(app: FastAPI) -> None:
         )
 
     @app.exception_handler(ValidationError)
-    async def pydantic_validation_exception_handler(request: Request, exc: ValidationError) -> JSONResponse:
+    async def pydantic_validation_exception_handler(
+        request: Request, exc: ValidationError
+    ) -> JSONResponse:
         request_id = getattr(request.state, "request_id", None)
 
         logger.warning(

@@ -111,13 +111,14 @@ class InferenceService:
             return
 
         # Verify checksum if provided
-        if settings.model_checksum:
-            if not await self._verify_checksum(path, settings.model_checksum):
-                logger.error("model_checksum_mismatch", path=str(path))
-                self._initialized = True
-                self._degraded_mode = True
-                self.model_version = "dummy-v1"
-                return
+        if settings.model_checksum and not await self._verify_checksum(
+            path, settings.model_checksum
+        ):
+            logger.error("model_checksum_mismatch", path=str(path))
+            self._initialized = True
+            self._degraded_mode = True
+            self.model_version = "dummy-v1"
+            return
 
         try:
             self.tokenizer = AutoTokenizer.from_pretrained(str(path))
@@ -261,11 +262,34 @@ class InferenceService:
                 if not batch:
                     break
 
+                batches = [batch]
+                futures = [future]
+
+                # Coalesce pending queued requests into a single forward pass up to max_batch_size
+                current_size = len(batch)
+                while current_size < self.max_batch_size and not self._queue.empty():
+                    try:
+                        next_batch, next_future = self._queue.get_nowait()
+                        if not next_batch:
+                            break
+                        batches.append(next_batch)
+                        futures.append(next_future)
+                        current_size += len(next_batch)
+                    except asyncio.QueueEmpty:
+                        break
+
+                all_items = [item for b in batches for item in b]
                 try:
-                    results = await self._predict_batch(batch)
-                    future.set_result(results)
+                    all_results = await self._predict_batch(all_items)
+                    offset = 0
+                    for b, f in zip(batches, futures, strict=False):
+                        if not f.cancelled():
+                            f.set_result(all_results[offset : offset + len(b)])
+                        offset += len(b)
                 except Exception as e:
-                    future.set_exception(e)
+                    for f in futures:
+                        if not f.cancelled():
+                            f.set_exception(e)
             except asyncio.CancelledError:
                 break
             except Exception as e:
@@ -317,7 +341,9 @@ class InferenceService:
             category = TicketCategory.SECURITY
         elif any(kw in text for kw in ["bug", "error", "crash", "broken", "not working", "fail"]):
             category = TicketCategory.BUG_REPORT
-        elif any(kw in text for kw in ["bill", "invoice", "charge", "refund", "payment", "subscription"]):
+        elif any(
+            kw in text for kw in ["bill", "invoice", "charge", "refund", "payment", "subscription"]
+        ):
             category = TicketCategory.BILLING
         elif any(kw in text for kw in ["account", "login", "password", "profile", "access"]):
             category = TicketCategory.ACCOUNT
@@ -345,7 +371,7 @@ class InferenceService:
             if self._queue is None:
                 return self._dummy_classify(subject, body)
 
-            future: asyncio.Future = asyncio.get_event_loop().create_future()
+            future: asyncio.Future = asyncio.get_running_loop().create_future()
             await self._queue.put(([(subject, body)], future))
 
             try:
@@ -353,7 +379,7 @@ class InferenceService:
                 return results[0]
             except TimeoutError:
                 future.cancel()
-                raise TimeoutError("Inference timeout")
+                raise TimeoutError("Inference timeout") from None
 
         try:
             return await self._circuit_breaker.call(_do_classify)
@@ -367,23 +393,28 @@ class InferenceService:
 
         return await self._classify_with_circuit_breaker(subject, body)
 
-    async def _classify_batch_with_circuit_breaker(self, items: list[tuple[str, str]]) -> list[TicketClassification]:
+    async def _classify_batch_with_circuit_breaker(
+        self, items: list[tuple[str, str]]
+    ) -> list[TicketClassification]:
         async def _do_classify_batch() -> list[TicketClassification]:
             if self._queue is None:
                 return [self._dummy_classify(s, b) for s, b in items]
 
-            batches = [items[i : i + self.max_batch_size] for i in range(0, len(items), self.max_batch_size)]
+            batches = [
+                items[i : i + self.max_batch_size]
+                for i in range(0, len(items), self.max_batch_size)
+            ]
             all_results = []
 
             for batch in batches:
-                future: asyncio.Future = asyncio.get_event_loop().create_future()
+                future: asyncio.Future = asyncio.get_running_loop().create_future()
                 await self._queue.put((batch, future))
                 try:
                     results = await asyncio.wait_for(future, timeout=self.timeout)
                     all_results.extend(results)
                 except TimeoutError:
                     future.cancel()
-                    raise TimeoutError("Batch inference timeout")
+                    raise TimeoutError("Batch inference timeout") from None
 
             return all_results
 

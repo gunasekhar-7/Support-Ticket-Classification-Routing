@@ -27,6 +27,7 @@ async def auth_client(initialized_app) -> AsyncClient:
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         # Create token inside the app context
         from app.auth.jwt import create_token_pair, get_user_by_id
+
         user = get_user_by_id("service")
         tokens = create_token_pair(user)
         ac.headers["Authorization"] = f"Bearer {tokens.access_token}"
@@ -39,6 +40,7 @@ async def admin_client(initialized_app) -> AsyncClient:
     transport = ASGITransport(app=initialized_app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         from app.auth.jwt import create_token_pair, get_user_by_id
+
         user = get_user_by_id("admin")
         tokens = create_token_pair(user)
         ac.headers["Authorization"] = f"Bearer {tokens.access_token}"
@@ -87,6 +89,13 @@ class TestAuthEndpoints:
         response = await client.post(
             "/api/v1/auth/login",
             json={"username": "nonexistent", "password": "any"},
+        )
+        assert response.status_code == 401
+
+    async def test_login_wrong_password(self, client: AsyncClient) -> None:
+        response = await client.post(
+            "/api/v1/auth/login",
+            json={"username": "service", "password": "wrong-password"},
         )
         assert response.status_code == 401
 

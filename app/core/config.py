@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import os
 from functools import lru_cache
 from pathlib import Path
 from typing import Literal
@@ -18,7 +17,7 @@ class Settings(BaseSettings):
     )
 
     app_name: str = "ticket-classifier"
-    environment: Literal["development", "staging", "production"] = "development"
+    environment: Literal["development", "staging", "production", "testing"] = "development"
     debug: bool = False
 
     host: str = "0.0.0.0"
@@ -53,7 +52,9 @@ class Settings(BaseSettings):
     rate_limit_requests: int = 100
     rate_limit_window: int = 60
 
-    cors_origins: list[str] = Field(default_factory=lambda: ["*"])
+    cors_origins: list[str] = Field(
+        default_factory=lambda: ["http://localhost:3000", "http://localhost:8000"]
+    )
     cors_allow_credentials: bool = True
     cors_allow_methods: list[str] = Field(default_factory=lambda: ["*"])
     cors_allow_headers: list[str] = Field(default_factory=lambda: ["*"])
@@ -80,7 +81,7 @@ class Settings(BaseSettings):
     @field_validator("model_path", "baseline_model_path", mode="before")
     @classmethod
     def resolve_paths(cls, v: str) -> str:
-        if not os.path.isabs(v):
+        if not Path(v).is_absolute():
             return str(Path.cwd() / v)
         return v
 
@@ -91,6 +92,10 @@ class Settings(BaseSettings):
     @property
     def is_development(self) -> bool:
         return self.environment == "development"
+
+    @property
+    def is_testing(self) -> bool:
+        return self.environment == "testing"
 
 
 @lru_cache

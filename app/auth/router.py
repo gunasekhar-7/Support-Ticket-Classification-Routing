@@ -4,7 +4,15 @@ from fastapi import APIRouter, Depends, HTTPException, Request, status
 from pydantic import BaseModel, Field
 
 from app.auth.dependencies import get_current_user
-from app.auth.jwt import TokenPair, User, UserRole, create_token_pair, decode_token, get_user_by_id
+from app.auth.jwt import (
+    TokenPair,
+    User,
+    UserRole,
+    create_token_pair,
+    decode_token,
+    get_user_by_id,
+    verify_password,
+)
 from app.core.logging import get_logger
 from app.core.rate_limiter import get_limiter
 
@@ -34,8 +42,12 @@ class UserResponse(BaseModel):
 @get_limiter().limit("10/minute")
 async def login(request: Request, credentials: LoginRequest) -> TokenPair:
     user = get_user_by_id(credentials.username)
-    if not user or not user.is_active:
-        logger.warning("login_failed", username=credentials.username, reason="user_not_found")
+    if (
+        not user
+        or not user.is_active
+        or not verify_password(credentials.password, user.password_hash)
+    ):
+        logger.warning("login_failed", username=credentials.username, reason="invalid_credentials")
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Invalid credentials",

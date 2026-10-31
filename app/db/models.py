@@ -29,11 +29,17 @@ class User(Base):
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
     role: Mapped[UserRole] = mapped_column(Enum(UserRole), default=UserRole.USER, nullable=False)
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
     # Relationships
-    audit_logs: Mapped[list[AuditLog]] = relationship("AuditLog", back_populates="user", lazy="dynamic")
+    audit_logs: Mapped[list[AuditLog]] = relationship(
+        "AuditLog", back_populates="user", lazy="dynamic"
+    )
 
 
 class TicketCategory(enum.StrEnum):
@@ -62,23 +68,36 @@ class Classification(Base):
     customer_id: Mapped[str | None] = mapped_column(String(100), index=True, nullable=True)
     customer_email: Mapped[str | None] = mapped_column(String(255), nullable=True)
 
-    category: Mapped[TicketCategory] = mapped_column(Enum(TicketCategory), index=True, nullable=False)
+    category: Mapped[TicketCategory] = mapped_column(
+        Enum(TicketCategory), index=True, nullable=False
+    )
     confidence: Mapped[float] = mapped_column(nullable=False)
     subcategory: Mapped[str | None] = mapped_column(String(100), nullable=True)
-    priority: Mapped[TicketPriority] = mapped_column(Enum(TicketPriority), index=True, nullable=False)
+    priority: Mapped[TicketPriority] = mapped_column(
+        Enum(TicketPriority), index=True, nullable=False
+    )
     suggested_team: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
     tags: Mapped[str] = mapped_column(Text, nullable=True)  # JSON array as string
     model_version: Mapped[str] = mapped_column(String(100), nullable=False)
     processing_time_ms: Mapped[float] = mapped_column(nullable=False)
 
     request_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
-    user_id: Mapped[str | None] = mapped_column(String(100), ForeignKey("users.id"), index=True, nullable=True)
+    user_id: Mapped[str | None] = mapped_column(
+        String(100), ForeignKey("users.id"), index=True, nullable=True
+    )
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, index=True, nullable=False
+    )
 
     # Relationships
     user: Mapped[User] = relationship("User", backref="classifications", lazy="raise")
-    audit_logs: Mapped[list[AuditLog]] = relationship("AuditLog", back_populates="classification", lazy="dynamic", foreign_keys="AuditLog.classification_id")
+    audit_logs: Mapped[list[AuditLog]] = relationship(
+        "AuditLog",
+        back_populates="classification",
+        lazy="dynamic",
+        foreign_keys="AuditLog.classification_id",
+    )
 
     __table_args__ = (
         Index("ix_classifications_category_priority_created", "category", "priority", "created_at"),
@@ -100,8 +119,12 @@ class RoutingRule(Base):
     is_active: Mapped[bool] = mapped_column(default=True, nullable=False)
     priority_order: Mapped[int] = mapped_column(Integer, default=0, nullable=False)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, nullable=False)
-    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, nullable=False
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False
+    )
 
 
 class AuditAction(enum.StrEnum):
@@ -124,8 +147,12 @@ class AuditLog(Base):
     action: Mapped[AuditAction] = mapped_column(Enum(AuditAction), index=True, nullable=False)
     entity_type: Mapped[str] = mapped_column(String(50), index=True, nullable=False)
     entity_id: Mapped[str] = mapped_column(String(100), index=True, nullable=False)
-    classification_id: Mapped[str | None] = mapped_column(String(36), ForeignKey("classifications.id"), index=True, nullable=True)
-    user_id: Mapped[str | None] = mapped_column(String(100), ForeignKey("users.id"), index=True, nullable=True)
+    classification_id: Mapped[str | None] = mapped_column(
+        String(36), ForeignKey("classifications.id"), index=True, nullable=True
+    )
+    user_id: Mapped[str | None] = mapped_column(
+        String(100), ForeignKey("users.id"), index=True, nullable=True
+    )
     request_id: Mapped[str | None] = mapped_column(String(36), index=True, nullable=True)
     ip_address: Mapped[str | None] = mapped_column(String(45), nullable=True)
     user_agent: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -135,11 +162,15 @@ class AuditLog(Base):
     success: Mapped[bool] = mapped_column(default=True, nullable=False)
     error_message: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=datetime.utcnow, index=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=datetime.utcnow, index=True, nullable=False
+    )
 
     # Relationships
     user: Mapped[User] = relationship("User", back_populates="audit_logs", lazy="raise")
-    classification: Mapped[Classification] = relationship("Classification", back_populates="audit_logs", lazy="raise")
+    classification: Mapped[Classification] = relationship(
+        "Classification", back_populates="audit_logs", lazy="raise"
+    )
 
     __table_args__ = (
         Index("ix_audit_logs_user_created", "user_id", "created_at"),

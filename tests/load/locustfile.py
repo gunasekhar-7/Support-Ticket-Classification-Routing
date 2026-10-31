@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import random
-from locust import HttpUser, task, between
+
+from locust import HttpUser, between, task
 
 
 class TicketClassificationUser(HttpUser):
@@ -24,14 +25,46 @@ class TicketClassificationUser(HttpUser):
     def classify_single_ticket(self):
         """Classify a single ticket - most common operation."""
         tickets = [
-            {"subject": "Login issue", "body": "Cannot login to my account", "customer_id": "cust-001"},
-            {"subject": "Bug report", "body": "API returns 500 error on /users endpoint", "customer_id": "cust-002"},
-            {"subject": "Billing question", "body": "Invoice amount is incorrect", "customer_id": "cust-003"},
-            {"subject": "Feature request", "body": "Add dark mode support", "customer_id": "cust-004"},
-            {"subject": "Security concern", "body": "Potential data breach detected", "customer_id": "cust-005"},
-            {"subject": "Account access", "body": "Need to reset password", "customer_id": "cust-006"},
-            {"subject": "Technical issue", "body": "Integration with Salesforce failing", "customer_id": "cust-007"},
-            {"subject": "General question", "body": "What are your business hours?", "customer_id": "cust-008"},
+            {
+                "subject": "Login issue",
+                "body": "Cannot login to my account",
+                "customer_id": "cust-001",
+            },
+            {
+                "subject": "Bug report",
+                "body": "API returns 500 error on /users endpoint",
+                "customer_id": "cust-002",
+            },
+            {
+                "subject": "Billing question",
+                "body": "Invoice amount is incorrect",
+                "customer_id": "cust-003",
+            },
+            {
+                "subject": "Feature request",
+                "body": "Add dark mode support",
+                "customer_id": "cust-004",
+            },
+            {
+                "subject": "Security concern",
+                "body": "Potential data breach detected",
+                "customer_id": "cust-005",
+            },
+            {
+                "subject": "Account access",
+                "body": "Need to reset password",
+                "customer_id": "cust-006",
+            },
+            {
+                "subject": "Technical issue",
+                "body": "Integration with Salesforce failing",
+                "customer_id": "cust-007",
+            },
+            {
+                "subject": "General question",
+                "body": "What are your business hours?",
+                "customer_id": "cust-008",
+            },
         ]
         ticket = random.choice(tickets)
         self.client.post(
@@ -46,7 +79,11 @@ class TicketClassificationUser(HttpUser):
         """Batch classify multiple tickets."""
         batch = {
             "tickets": [
-                {"subject": f"Batch ticket {i}", "body": f"Description for batch ticket {i}", "customer_id": f"cust-batch-{i}"}
+                {
+                    "subject": f"Batch ticket {i}",
+                    "body": f"Description for batch ticket {i}",
+                    "customer_id": f"cust-batch-{i}",
+                }
                 for i in range(random.randint(5, 20))
             ]
         }
@@ -71,6 +108,7 @@ class TicketClassificationUser(HttpUser):
 
 class TicketClassificationV2User(HttpUser):
     """Load test for v2 API endpoints."""
+
     wait_time = between(1, 3)
 
     def on_start(self):
@@ -150,6 +188,7 @@ class TicketClassificationV2User(HttpUser):
 
 class ChaosUser(HttpUser):
     """Chaos engineering tests - simulate failures and edge cases."""
+
     wait_time = between(0.5, 1.5)
 
     def on_start(self):
@@ -191,7 +230,11 @@ class ChaosUser(HttpUser):
         """Send large batch to test limits."""
         batch = {
             "tickets": [
-                {"subject": f"Large batch {i}", "body": f"Description {i}", "customer_id": f"cust-{i}"}
+                {
+                    "subject": f"Large batch {i}",
+                    "body": f"Description {i}",
+                    "customer_id": f"cust-{i}",
+                }
                 for i in range(100)  # Max batch size
             ]
         }
@@ -217,7 +260,11 @@ class ChaosUser(HttpUser):
         for _ in range(5):
             self.client.post(
                 "/api/v1/classify",
-                json={"subject": "rate limit test", "body": "testing rate limits", "customer_id": "cust-rl"},
+                json={
+                    "subject": "rate limit test",
+                    "body": "testing rate limits",
+                    "customer_id": "cust-rl",
+                },
                 headers=self.headers,
                 name="/api/v1/classify (rate limit)",
             )
