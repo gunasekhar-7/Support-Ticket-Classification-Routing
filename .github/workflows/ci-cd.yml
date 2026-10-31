@@ -228,20 +228,7 @@ jobs:
     needs: deploy-staging
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
-    permissions:
-      contents: read
-      issues: write
     steps:
-      - name: Manual approval
-        if: ${{ secrets.PRODUCTION_APPROVERS != '' }}
-        uses: trstringer/manual-approval@v1
-        with:
-          secret: ${{ github.token }}
-          approvers: ${{ secrets.PRODUCTION_APPROVERS }}
-          minimum-approvals: 1
-          issue-title: "Production deployment approval required"
-          issue-body: "This workflow requires manual approval before deploying to production."
-
       - name: Deploy to production
         run: |
           echo "Deploying to production environment..."
