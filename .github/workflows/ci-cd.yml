@@ -228,8 +228,12 @@ jobs:
     needs: deploy-staging
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     environment: production
+    permissions:
+      contents: read
+      issues: write
     steps:
       - name: Manual approval
+        if: ${{ secrets.PRODUCTION_APPROVERS != '' }}
         uses: trstringer/manual-approval@v1
         with:
           secret: ${{ github.token }}
