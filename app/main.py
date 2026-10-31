@@ -74,18 +74,19 @@ async def lifespan(app: FastAPI) -> Any:
     app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
     # Inference Service
-    inference_service: InferenceService | None = InferenceService(
+    inf_service = InferenceService(
         model_path=settings.model_path,
         device=settings.model_device,
         max_batch_size=settings.max_batch_size,
         timeout=settings.inference_timeout,
     )
+    inference_service: InferenceService | None = None
     try:
-        await inference_service.initialize()
+        await inf_service.initialize()
+        inference_service = inf_service
         logger.info("inference_service_initialized", model_path=settings.model_path)
     except Exception as e:
         logger.exception("inference_service_failed", error=str(e))
-        inference_service = None
 
     # Routing Service
     routing_service: RoutingService | None = RoutingService(redis_client=redis_client)

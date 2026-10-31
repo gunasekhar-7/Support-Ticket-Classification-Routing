@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import hmac
+from collections.abc import Callable
 from datetime import UTC, datetime, timedelta
 from enum import StrEnum
 
@@ -139,7 +140,7 @@ def verify_token(token: str) -> User | None:
     return user
 
 
-def require_role(*allowed_roles: UserRole):
+def require_role(*allowed_roles: UserRole) -> Callable[[User], User]:
     def role_checker(user: User) -> User:
         if user.role not in allowed_roles:
             from fastapi import HTTPException, status

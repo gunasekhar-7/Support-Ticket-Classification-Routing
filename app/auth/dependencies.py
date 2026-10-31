@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections.abc import Awaitable, Callable
+
 from fastapi import Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
@@ -40,7 +42,7 @@ async def get_optional_user(
     return verify_token(credentials.credentials)
 
 
-def require_roles(*roles: UserRole):
+def require_roles(*roles: UserRole) -> Callable[..., Awaitable[User]]:
     async def role_dependency(user: User = Depends(get_current_user)) -> User:
         if user.role not in roles:
             raise HTTPException(

@@ -56,6 +56,9 @@ class ModelDownloadError(Exception):
     pass
 
 
+InferenceQueueItem = tuple[list[tuple[str, str]], asyncio.Future[Any] | None]
+
+
 class InferenceService:
     def __init__(
         self,
@@ -73,7 +76,7 @@ class InferenceService:
         self.model_version: str = "unknown"
         self._initialized = False
         self._degraded_mode = False
-        self._queue: asyncio.Queue[tuple[list[tuple[str, str]], asyncio.Future]] | None = None
+        self._queue: asyncio.Queue[InferenceQueueItem] | None = None
         self._worker_task: asyncio.Task | None = None
 
         # Circuit breaker for model inference
@@ -256,10 +259,14 @@ class InferenceService:
         return True
 
     async def _batch_worker(self) -> None:
+        queue = self._queue
+        if queue is None:
+            return
+
         while True:
             try:
-                batch, future = await self._queue.get()
-                if not batch:
+                batch, future = await queue.get()
+                if not batch or future is None:
                     break
 
                 batches = [batch]
@@ -267,10 +274,10 @@ class InferenceService:
 
                 # Coalesce pending queued requests into a single forward pass up to max_batch_size
                 current_size = len(batch)
-                while current_size < self.max_batch_size and not self._queue.empty():
+                while current_size < self.max_batch_size and not queue.empty():
                     try:
-                        next_batch, next_future = self._queue.get_nowait()
-                        if not next_batch:
+                        next_batch, next_future = queue.get_nowait()
+                        if not next_batch or next_future is None:
                             break
                         batches.append(next_batch)
                         futures.append(next_future)

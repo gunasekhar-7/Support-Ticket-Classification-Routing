@@ -5,8 +5,10 @@ import time
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Request
+from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.auth.dependencies import get_current_user
+from app.auth.jwt import User
 from app.core.logging import get_logger
 from app.core.metrics import (
     CLASSIFICATION_CONFIDENCE,
@@ -38,7 +40,7 @@ async def get_request_id(request: Request) -> str:
 
 
 async def _audit_log(
-    session,
+    session: AsyncSession,
     action: AuditAction,
     entity_type: str,
     entity_id: str,
@@ -93,7 +95,7 @@ async def classify_ticket(
     inference: InferenceService = Depends(get_inference_service),
     routing: RoutingService = Depends(get_routing_service),
     request_id: str = Depends(get_request_id),
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> TicketResponse:
     start_time = time.perf_counter()
     ticket_id = str(uuid.uuid4())
@@ -237,7 +239,7 @@ async def classify_batch(
     inference: InferenceService = Depends(get_inference_service),
     routing: RoutingService = Depends(get_routing_service),
     request_id: str = Depends(get_request_id),
-    current_user=Depends(get_current_user),
+    current_user: User = Depends(get_current_user),
 ) -> BatchTicketResponse:
     start_time = time.perf_counter()
 

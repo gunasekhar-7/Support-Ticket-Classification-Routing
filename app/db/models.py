@@ -2,16 +2,11 @@ from __future__ import annotations
 
 import enum
 from datetime import datetime
-from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Enum, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.session import Base
-
-if TYPE_CHECKING:
-    from app.db.models.audit_log import AuditLog
-    from app.db.models.routing_rule import RoutingRule
 
 
 class UserRole(enum.StrEnum):

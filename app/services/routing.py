@@ -60,8 +60,15 @@ class RoutingService:
                 logger.warning("routing_rules_load_failed", error=str(e))
 
     async def _load_routing_rules(self) -> None:
+        if self.redis_client is None:
+            return
         rules = await self.redis_client.hgetall("routing:rules")
-        self._routing_rules = dict(rules.items())
+        self._routing_rules = {
+            k.decode() if isinstance(k, bytes) else str(k): (
+                v.decode() if isinstance(v, bytes) else v
+            )
+            for k, v in rules.items()
+        }
 
     async def route(
         self,
@@ -122,6 +129,8 @@ class RoutingService:
         team: str,
         priority: str,
     ) -> None:
+        if self.redis_client is None:
+            return
         pipe = self.redis_client.pipeline()
         pipe.incr("routing:total")
         pipe.incr(f"routing:category:{category}")

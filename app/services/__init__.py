@@ -1,7 +1,10 @@
 from __future__ import annotations
 
+from typing import Any
+
 from fastapi import Request
 
+from app.core.config import Settings
 from app.services.inference import InferenceService
 from app.services.routing import RoutingService
 
@@ -20,9 +23,9 @@ def get_routing_service(request: Request) -> RoutingService:
     return service
 
 
-def get_redis_client(request: Request):
+def get_redis_client(request: Request) -> Any:
     return request.app.state.redis_client
 
 
-def get_settings(request: Request):
+def get_settings(request: Request) -> Settings:
     return request.app.state.settings

@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import APIRouter, Depends, Request
 from pydantic import BaseModel
 
+from app.core.config import Settings
 from app.core.logging import get_logger
 from app.services import get_inference_service, get_redis_client, get_routing_service, get_settings
 from app.services.inference import InferenceService
@@ -40,7 +41,7 @@ class DetailedHealthResponse(BaseModel):
 
 
 @router.get("/health", response_model=HealthStatus)
-async def health_check(settings=Depends(get_settings)) -> HealthStatus:
+async def health_check(settings: Settings = Depends(get_settings)) -> HealthStatus:
     return HealthStatus(
         status="healthy",
         timestamp=time.time(),
@@ -50,7 +51,7 @@ async def health_check(settings=Depends(get_settings)) -> HealthStatus:
 
 
 @router.get("/health/live", response_model=HealthStatus)
-async def liveness_check(settings=Depends(get_settings)) -> HealthStatus:
+async def liveness_check(settings: Settings = Depends(get_settings)) -> HealthStatus:
     return HealthStatus(
         status="alive",
         timestamp=time.time(),
@@ -64,8 +65,8 @@ async def readiness_check(
     request: Request,
     inference: InferenceService = Depends(get_inference_service),
     routing: RoutingService = Depends(get_routing_service),
-    redis_client=Depends(get_redis_client),
-    settings=Depends(get_settings),
+    redis_client: Any = Depends(get_redis_client),
+    settings: Settings = Depends(get_settings),
 ) -> DetailedHealthResponse:
     timestamp = time.time()
     components = {}

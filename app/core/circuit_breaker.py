@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
-from collections.abc import Callable
+from collections.abc import Awaitable, Callable
 from enum import StrEnum
 from typing import Any, TypeVar
 
@@ -74,7 +74,7 @@ class CircuitBreaker:
             return CircuitState.HALF_OPEN
         return self._state
 
-    async def call(self, func: Callable[..., T], *args: Any, **kwargs: Any) -> T:
+    async def call(self, func: Callable[..., Awaitable[T]], *args: Any, **kwargs: Any) -> T:
         async with self._lock:
             current_state = self.state
             if current_state == CircuitState.OPEN:
