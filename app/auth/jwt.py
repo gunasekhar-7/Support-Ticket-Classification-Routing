@@ -88,8 +88,8 @@ def create_access_token(user: User, expires_delta: timedelta | None = None) -> s
         iat=int(now.timestamp()),
         type="access",
     )
-    return jwt.encode(
-        payload.model_dump(), settings.jwt_secret_key, algorithm=settings.jwt_algorithm
+    return str(
+        jwt.encode(payload.model_dump(), settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
     )
 
 
@@ -104,8 +104,8 @@ def create_refresh_token(user: User) -> str:
         iat=int(now.timestamp()),
         type="refresh",
     )
-    return jwt.encode(
-        payload.model_dump(), settings.jwt_secret_key, algorithm=settings.jwt_algorithm
+    return str(
+        jwt.encode(payload.model_dump(), settings.jwt_secret_key, algorithm=settings.jwt_algorithm)
     )
 
 

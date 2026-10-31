@@ -147,7 +147,7 @@ class InferenceService:
             self._degraded_mode = True
             self.model_version = "dummy-v1"
 
-    async def _maybe_download_model(self, settings, path: Path) -> None:
+    async def _maybe_download_model(self, settings: Any, path: Path) -> None:
         """Download model from S3 or GCS if configured."""
         if settings.model_s3_bucket and settings.model_s3_key:
             await self._download_from_s3(settings, path)
@@ -156,7 +156,7 @@ class InferenceService:
         else:
             logger.info("no_model_download_configured", path=str(path))
 
-    async def _download_from_s3(self, settings, path: Path) -> None:
+    async def _download_from_s3(self, settings: Any, path: Path) -> None:
         """Download model from S3 using boto3."""
         try:
             import boto3
@@ -193,7 +193,7 @@ class InferenceService:
             except Exception as e:
                 raise ModelDownloadError(f"S3 download failed: {e}") from e
 
-    async def _download_from_gcs(self, settings, path: Path) -> None:
+    async def _download_from_gcs(self, settings: Any, path: Path) -> None:
         """Download model from GCS using google-cloud-storage."""
         try:
             from google.cloud import storage

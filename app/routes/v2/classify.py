@@ -4,6 +4,7 @@ import json
 import time
 import uuid
 from datetime import datetime
+from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
@@ -20,11 +21,9 @@ from app.db import get_session
 from app.db.models import AuditAction, AuditLog, Classification
 from app.schemas.ticket import (
     BatchTicketRequest,
-    BatchTicketResponse,
     ErrorDetail,
     ErrorResponse,
     TicketRequest,
-    TicketResponse,
 )
 from app.services import get_inference_service, get_routing_service
 from app.services.inference import InferenceService
@@ -101,19 +100,24 @@ class ClassificationDetail(BaseModel):
     )
 
 
-class TicketResponseV2(TicketResponse):
+class TicketResponseV2(BaseModel):
     """Extended ticket response for v2."""
 
+    ticket_id: str
     classification: ClassificationDetail
-    routing: dict = Field(default_factory=dict, description="Routing details")
+    processing_time_ms: float
+    model_version: str
+    routing: dict[str, Any] = Field(default_factory=dict, description="Routing details")
     request_id: str
     timestamp: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
 
 
-class BatchTicketResponseV2(BatchTicketResponse):
+class BatchTicketResponseV2(BaseModel):
     """Extended batch response for v2."""
 
     results: list[TicketResponseV2]
+    total_processing_time_ms: float
+    model_version: str
 
 
 @router.post(
@@ -194,6 +198,11 @@ async def classify_ticket(
 
         # Audit log
         async with get_session() as session:
+            from app.db.models import User as DBUser
+
+            user_exists = await session.get(DBUser, current_user.id) if current_user else None
+            valid_user_id = current_user.id if user_exists else None
+
             db_classification = Classification(
                 id=ticket_id,
                 subject=ticket.subject,
@@ -209,7 +218,7 @@ async def classify_ticket(
                 model_version=inference.model_version,
                 processing_time_ms=processing_time,
                 request_id=request_id,
-                user_id=current_user.id,
+                user_id=valid_user_id,
             )
             session.add(db_classification)
             await session.flush()
@@ -220,7 +229,7 @@ async def classify_ticket(
                 entity_type="classification",
                 entity_id=ticket_id,
                 classification_id=ticket_id,
-                user_id=current_user.id,
+                user_id=valid_user_id,
                 request_id=request_id,
                 request=request,
                 new_values={
@@ -328,6 +337,11 @@ async def classify_batch(
 
         results = []
         async with get_session() as session:
+            from app.db.models import User as DBUser
+
+            user_exists = await session.get(DBUser, current_user.id) if current_user else None
+            valid_user_id = current_user.id if user_exists else None
+
             for ticket, classification in zip(batch.tickets, classifications, strict=True):
                 routing_result = await routing.route(
                     classification=classification,
@@ -384,7 +398,7 @@ async def classify_batch(
                     model_version=inference.model_version,
                     processing_time_ms=0.0,
                     request_id=request_id,
-                    user_id=current_user.id,
+                    user_id=valid_user_id,
                 )
                 session.add(db_classification)
                 await session.flush()
@@ -396,7 +410,7 @@ async def classify_batch(
                     entity_type="classification",
                     entity_id=ticket_id,
                     classification_id=ticket_id,
-                    user_id=current_user.id,
+                    user_id=valid_user_id,
                     request_id=request_id,
                     request=request,
                     new_values={

@@ -88,6 +88,30 @@ async def init_db() -> None:
     engine = get_engine()
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+
+    # Seed default system accounts if missing so foreign keys are always satisfied
+    from app.auth.jwt import hash_password
+    from app.db.models import User, UserRole
+
+    factory = get_session_factory()
+    async with factory() as session:
+        for uid, uname, role in [
+            ("admin", "admin", UserRole.ADMIN),
+            ("service", "service-account", UserRole.SERVICE),
+        ]:
+            existing = await session.get(User, uid)
+            if not existing:
+                session.add(
+                    User(
+                        id=uid,
+                        username=uname,
+                        email=f"{uid}@example.com",
+                        hashed_password=hash_password("any"),
+                        role=role,
+                        is_active=True,
+                    )
+                )
+        await session.commit()
     logger.info("database_initialized")
 
 

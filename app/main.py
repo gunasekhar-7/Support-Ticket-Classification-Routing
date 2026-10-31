@@ -69,12 +69,12 @@ async def lifespan(app: FastAPI) -> Any:
         redis_client = None
 
     # Configure limiter with Redis storage if available
-    _limiter = configure_limiter(settings.redis_url if redis_client else None)
-    app.state.limiter = _limiter
-    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+    limiter = configure_limiter(settings.redis_url if redis_client else None)
+    app.state.limiter = limiter
+    app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)  # type: ignore[arg-type]
 
     # Inference Service
-    inference_service = InferenceService(
+    inference_service: InferenceService | None = InferenceService(
         model_path=settings.model_path,
         device=settings.model_device,
         max_batch_size=settings.max_batch_size,
@@ -88,7 +88,7 @@ async def lifespan(app: FastAPI) -> Any:
         inference_service = None
 
     # Routing Service
-    routing_service = RoutingService(redis_client=redis_client)
+    routing_service: RoutingService | None = RoutingService(redis_client=redis_client)
     try:
         logger.info("routing_service_initialized")
     except Exception as e:

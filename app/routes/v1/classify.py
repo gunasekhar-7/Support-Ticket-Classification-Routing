@@ -131,6 +131,11 @@ async def classify_ticket(
 
         # Audit log the classification
         async with get_session() as session:
+            from app.db.models import User as DBUser
+
+            user_exists = await session.get(DBUser, current_user.id) if current_user else None
+            valid_user_id = current_user.id if user_exists else None
+
             db_classification = Classification(
                 id=ticket_id,
                 subject=ticket.subject,
@@ -146,7 +151,7 @@ async def classify_ticket(
                 model_version=inference.model_version,
                 processing_time_ms=processing_time,
                 request_id=request_id,
-                user_id=current_user.id,
+                user_id=valid_user_id,
             )
             session.add(db_classification)
             await session.flush()
@@ -157,7 +162,7 @@ async def classify_ticket(
                 entity_type="classification",
                 entity_id=ticket_id,
                 classification_id=ticket_id,
-                user_id=current_user.id,
+                user_id=valid_user_id,
                 request_id=request_id,
                 request=request,
                 new_values={
@@ -248,6 +253,11 @@ async def classify_batch(
 
         results = []
         async with get_session() as session:
+            from app.db.models import User as DBUser
+
+            user_exists = await session.get(DBUser, current_user.id) if current_user else None
+            valid_user_id = current_user.id if user_exists else None
+
             for ticket, classification in zip(batch.tickets, classifications, strict=True):
                 routing_result = await routing.route(
                     classification=classification,
@@ -285,7 +295,7 @@ async def classify_batch(
                     model_version=inference.model_version,
                     processing_time_ms=0.0,
                     request_id=request_id,
-                    user_id=current_user.id,
+                    user_id=valid_user_id,
                 )
                 session.add(db_classification)
                 await session.flush()
@@ -297,7 +307,7 @@ async def classify_batch(
                     entity_type="classification",
                     entity_id=ticket_id,
                     classification_id=ticket_id,
-                    user_id=current_user.id,
+                    user_id=valid_user_id,
                     request_id=request_id,
                     request=request,
                     new_values={
